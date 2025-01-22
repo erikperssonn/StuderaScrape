@@ -39,7 +39,7 @@ public class Scraper {
     public Scraper  (){
         System.setProperty("webdriver.chrome.driver", "C:\\Users\\oxxer\\Desktop\\programmeingsaker\\chromedriver-win64 (1)\\chromedriver-win64\\chromedriver.exe");
         this.driver = new ChromeDriver();
-        driver.get("https://www.studera.nu/jamfor-utbildning/?q=&p=2&_t_dtq=true");
+        driver.get("https://www.studera.nu/jamfor-utbildning/?q=&p=1&_t_dtq=true");
         //this.wait = new FluentWait<>(this.driver)
         //                        .withTimeout(Duration.ofSeconds(10))
         //                        .pollingEvery(Duration.ofMillis(500));
@@ -53,6 +53,7 @@ public class Scraper {
                             .withTimeout(Duration.ofSeconds(10))
                             .pollingEvery(Duration.ofMillis(500))
                             .ignoring(NoSuchElementException.class);
+                            
 
         this.utbildningar = new ArrayList<>();
                                 
@@ -73,7 +74,10 @@ public class Scraper {
         
         acceptCookies();
         //fixFilters();
-        
+        //System.out.println("1");
+        //WebElement test = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("#filterMobileMenuTole")));
+        //System.out.println("2");
+
         Integer nbrOfResults = getNumberOfResults(); 
         Integer nbrOfPages = (int) Math.ceil(nbrOfResults / NBR_OF_RESULTS_PER_PAGE);
 
@@ -163,6 +167,7 @@ public class Scraper {
 
             
             scrapeBetyg(result, examen, linkTillUtb);
+            dropDownKnapp.click();
         } else{
             System.out.println("Sluta");
         }
@@ -171,54 +176,166 @@ public class Scraper {
 
     public void scrapeBetyg(WebElement result, String examen, String linkTillUtb){
         easySleep(1000, 1000);
-        WebElement antagningsStatKnapp = this.wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//*[@id=\"admission-stats-accordian\"]/div/button"))));
+        WebElement antagningsStatKnapp = tryToScrape(".//*[@id=\"admission-stats-accordian\"]/div/button", 7, result);
         antagningsStatKnapp.click();
         easySleep(200, 300);     //*[@id="admission-stats-accordian"]/div/button
-        setFilterForBetyg(result);
+        
+        Boolean cont = false;
+        cont = setFilterForBetyg(result, cont);
+            
+            
+        List<WebElement> antagningsTabeller = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//*[contains(@id, '-anstat-collapse')]/div")));
+        System.out.println (antagningsTabeller.size()+ " antagningsTabeller");
+        
+        List<WebElement> filteredAntagningsTabeller = antagningsTabeller.stream()
+        .filter(k -> "antstat-tables".equals(k.getDomAttribute("class")))
+        .collect(Collectors.toList());
+        for(WebElement antagningsTabell : filteredAntagningsTabeller){
+            System.out.println(antagningsTabell.getDomAttribute("class") + "hej2");
+        }
+        System.out.println(filteredAntagningsTabeller.size() + " filtered antagningsTabeller");
 
-        List<WebElement> antagningsTabeller = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.cssSelector(".//div[4]")));
-        for(WebElement antagningsTabell : antagningsTabeller){
-            scrapeAntagningsTabell(antagningsTabell, examen, linkTillUtb);
+        for(WebElement antagningsTabell : filteredAntagningsTabeller){
+            System.out.println(antagningsTabell.getDomAttribute("class") + "hej");
+            System.out.println("cont " + cont);
+            if(cont){
+                scrapeAntagningsTabell(antagningsTabell, examen, linkTillUtb);
+            }
         }
 
         
 
     }
 
-    public void setFilterForBetyg(WebElement result){
-        easySleep(5000, 5000);
-
-        WebElement filterButton = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div[2]/div/div[1]/div[1]/div[2]/div[2]/div/fieldset/div/button"))));
+    public Boolean setFilterForBetyg(WebElement result, Boolean cont){
+        WebElement filterButton = tryToScrape(".//div[2]/div/div[1]/div[1]/div[2]/div[2]/div/fieldset/div/button", 7, result);
         filterButton.click();                    
         
-        List<WebElement> filterAlternativ = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//*[contains(@id= 'multiselect']/div/ul/li[*]/label/span")));
+        List<WebElement> filterAlternativ = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//*[contains(@id, 'multiselect')]/div/ul/li/label/span")));
+        System.out.println(filterAlternativ.size());                                                   
+        
         int i = 0;
         String B1 = "BI - Gymnasiebetyg utan komplettering";
         String B2 = "BII - Gymnasiebetyg med komplettering";
         String HP = "HP - Högskoleprov";
-        while(i < 3){
-            String filter = filterAlternativ.get(i).getText();
-            if(filter.equals(B1) || filter.equals(B2) || filter.equals(HP)){
-                filterAlternativ.get(i).click();
+        
+        try{ 
+            while(i < 3){
+                String filter = filterAlternativ.get(i).getText();
+                if(filter.equals(B1) || filter.equals(B2) || filter.equals(HP)){
+                    filterAlternativ.get(i).click();
+                    cont = true;
+                }
+                i++;
             }
+        } catch(IndexOutOfBoundsException e){
+
         }
 
         filterButton.click();
 
-        WebElement visa = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//*[containts(@id= '-anstat-collapse']/div[2]/div/div/button[1]"))));
+        WebElement visa = tryToScrape(".//*[contains(@id, '-anstat-collapse')]/div[2]/div/div/button[1]", 7, result);
         visa.click();
 
+        return cont;
     }
 
     public void scrapeAntagningsTabell(WebElement antagningsTabell, String examen, String linkTillUtb){
+        
         Utbildning utbildning = new Utbildning();
         utbildning.setExamen(examen);
         utbildning.setLink(linkTillUtb);
 
+        
+        String namn = tryToScrape(".//div/h5", 7, antagningsTabell).getText();
+        System.out.println("Namn: " + namn);
+    
+        String uni = tryToScrape(".//div/div[1]/span[1]", 7, antagningsTabell).getText();
+        System.out.println("Uni: " + uni);
+    
+        String antalHP = tryToScrape(".//div[1]/span[2]", 7, antagningsTabell).getText().split(" ")[0];
+        //antalHP.chars()
+        //        .filter(c -> Character.isDigit(c) || c == ',')
+        //        .mapToObj(c -> String.valueOf((char) c))
+        //        .collect(Collectors.joining());
 
+        antalHP = antalHP.replace("Omfattning", "").replace(",", ".");
+        System.out.println("Antal HP: " + antalHP);
+
+        String takt = tryToScrape(".//div/div[1]/span[3]", 7, antagningsTabell).getText().replace("%", "");
+        System.out.println("Takt: " + takt);
+        takt = takt.replace("Studietakt", "");
+
+        String utbTyp = tryToScrape(".//div/div[1]/span[4]", 7, antagningsTabell).getText();
+        utbTyp = utbTyp.replace("Utbildningsnivå", "");
+        System.out.println("UtbTyp: " + utbTyp);
+        
+
+        String utbDistansEllerInte = tryToScrape(".//div/div[1]/span[5]", 7, antagningsTabell).getText();
+        System.out.println("UtbDistansEllerInte: " + utbDistansEllerInte);
+
+        String plats = "";
+        try{
+            plats = tryToScrape(".//div/div[1]/span[6]", 1, antagningsTabell).getText();
+            System.out.println("Plats: " + plats);
+        } catch(TimeoutException e){
+            plats = "Ortsoberoende";
+        }
+
+        utbildning.setNamn(namn);
+        utbildning.setUni(uni);
+        utbildning.setAntalHP(Double.valueOf(antalHP));
+        utbildning.setStudietakt(Integer.valueOf(takt));
+        utbildning.setUtbildningstyp(utbTyp);
+        utbildning.setPlatsDistans(utbDistansEllerInte);
+        utbildning.setOrt(plats);
+
+        scrapeBetygData(antagningsTabell, utbildning);
 
     }
+
+//*[@id="29-anstat-collapse"]/div[3]
+//*[@id="29-anstat-collapse"]/div[3]/div
+//*[@id="29-anstat-collapse"]/div[3]/div/h5
+//*[@id="51-anstat-collapse"]/div[5]/div/h5
+//*[@id="51-anstat-collapse"]/div[4]/div/h5
+
+    public void scrapeBetygData(WebElement antagningtabell, Utbildning utbildning){
+        //*[@id="29-anstat-collapse"]/div[3]/div/div[2]/table/tbody/tr[2]
+        //*[@id="29-anstat-collapse"]/div[3]/div/div[2]/table/tbody/tr[2]
+        //*[@id="29-anstat-collapse"]/div[4]/div/div[2]/table/tbody/tr[2]
+        //*[@id="29-anstat-collapse"]/div[4]/div/div[2]/table/tbody/tr[4]
+
+        List<WebElement> TRS = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//table/tbody/tr")));
+        System.out.println(TRS.size() + " TRS");
+        TRS.stream()
+                .map(k -> k.findElement(By.xpath("./*")))
+                //.filter(o -> "row".equals(o.getDomAttribute("aria-label")))
+                .collect(Collectors.toList());
+
+        System.out.println(TRS.size() + " TRS");
+
+        for(WebElement TR : TRS){
+            System.out.println(TR.getDomAttribute("aria-label") + " TR");
+            System.out.println(TR.getText());
+        }
+    }
+    
+
+    public WebElement tryToScrape(String path, double seconds, WebElement fromElement){
+        try{
+            if(seconds <= 0){
+                throw new TimeoutException();
+            }
+            WebElement element = wait.until(ExpectedConditions.visibilityOf(fromElement.findElement(By.xpath(path))));
+            return element;
+        } catch(NoSuchElementException e){
+            easySleep(100, 100);
+            return tryToScrape(path, seconds - 0.1, fromElement);
+        }
+    }
+
         
 }
-///html/body/main/div/div/div/div/div/searchcompare/div[3]/div/div[3]/div[1]/ul/li[1]/div[2]/div/div[1]/div[1]/div[2]/div[2]/div/fieldset/div/button
+//html/body/main/div/div/div/div/div/searchcompare/div[3]/div/div[3]/div[1]/ul/li[1]/div[2]/div/div[1]/div[1]/div[2]/div[2]/div/fieldset/div/button
 //html/body/main/div/div/div/div/div/searchcompare/div[3]/div/div[3]/div[1]/ul/li[2]/div[2]/div/div[1]/div[1]/div[2]/div[2]/div/fieldset/div/button

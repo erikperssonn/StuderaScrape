@@ -11,7 +11,7 @@ public class Utbildning {
      private String utbildningNiva;
      private String link;
      private int studietakt;
-     private int antalHP;
+     private double antalHP;
 
      public Utbildning  (){
 
@@ -45,7 +45,7 @@ public class Utbildning {
      public void setStudietakt(int studietakt){
          this.studietakt = studietakt;
      }
-     public void setAntalHP(int antalHP){
+     public void setAntalHP(double antalHP){
          this.antalHP = antalHP;
      }
      public String getNamn(){
@@ -75,7 +75,7 @@ public class Utbildning {
      public int getStudietakt(){
          return studietakt;
      }
-     public int getAntalHP(){
+     public double getAntalHP(){
          return antalHP;
      }
 
