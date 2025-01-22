@@ -13,6 +13,18 @@ import java.time.Duration;
 import java.util.stream.Collectors;
 import org.openqa.selenium.support.ui.Wait;
 import java.util.ArrayList;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.PageLoadStrategy;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.FluentWait;
+import org.openqa.selenium.support.ui.Wait;
+import org.checkerframework.checker.units.qual.s;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 
 public class Scraper {
     
@@ -28,12 +40,19 @@ public class Scraper {
         System.setProperty("webdriver.chrome.driver", "C:\\Users\\oxxer\\Desktop\\programmeingsaker\\chromedriver-win64 (1)\\chromedriver-win64\\chromedriver.exe");
         this.driver = new ChromeDriver();
         driver.get("https://www.studera.nu/jamfor-utbildning/?q=&p=2&_t_dtq=true");
+        //this.wait = new FluentWait<>(this.driver)
+        //                        .withTimeout(Duration.ofSeconds(10))
+        //                        .pollingEvery(Duration.ofMillis(500));
+        //this.fasterWait = new FluentWait<>(this.driver)
+        //                        .withTimeout(Duration.ofSeconds(1))
+        //                        .pollingEvery(Duration.ofMillis(200));
+//      
+        //this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        this.fasterWait = new WebDriverWait(driver, Duration.ofSeconds(1));
         this.wait = new FluentWait<>(driver)
-                                .withTimeout(Duration.ofSeconds(10))
-                                .pollingEvery(Duration.ofMillis(500));
-        this.fasterWait = new FluentWait<>(driver)
-                                .withTimeout(Duration.ofSeconds(1))
-                                .pollingEvery(Duration.ofMillis(200));
+                            .withTimeout(Duration.ofSeconds(10))
+                            .pollingEvery(Duration.ofMillis(500))
+                            .ignoring(NoSuchElementException.class);
 
         this.utbildningar = new ArrayList<>();
                                 
@@ -53,7 +72,7 @@ public class Scraper {
         System.out.println("Scraping...");
         
         acceptCookies();
-        fixFilters();
+        //fixFilters();
         
         Integer nbrOfResults = getNumberOfResults(); 
         Integer nbrOfPages = (int) Math.ceil(nbrOfResults / NBR_OF_RESULTS_PER_PAGE);
@@ -138,42 +157,68 @@ public class Scraper {
         boolean sluta = utbNiva.equals("Avancerad");
         if(!sluta){
             System.out.println("Fortsatt");
-            //ha kvar ellr inte
+            
             String linkTillUtb = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[1]/a")))).getDomAttribute("href");
-            //ha kvar
-            String examin = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[2]/div[4]")))).getText().replace("Examen: ", "");
+            String examen = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[2]/div[4]")))).getText().replace("Examen: ", "");
 
-            setFilterForBetyg();
-            scrapeBetyg(result, examin, linkTillUtb);
+            
+            scrapeBetyg(result, examen, linkTillUtb);
         } else{
             System.out.println("Sluta");
         }
         
     } 
 
-    public void scrapeBetyg(WebElement result, String examin, String linkTillUtb){
-        WebElement antagningsStatKnapp = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//*[@id=\"admission-stats-accordian\"]/div/button"))));
+    public void scrapeBetyg(WebElement result, String examen, String linkTillUtb){
+        easySleep(1000, 1000);
+        WebElement antagningsStatKnapp = this.wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//*[@id=\"admission-stats-accordian\"]/div/button"))));
         antagningsStatKnapp.click();
-        easySleep(200, 300);
+        easySleep(200, 300);     //*[@id="admission-stats-accordian"]/div/button
+        setFilterForBetyg(result);
 
         List<WebElement> antagningsTabeller = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.cssSelector(".//div[4]")));
         for(WebElement antagningsTabell : antagningsTabeller){
-            scrapeAntagningsTabell(antagningsTabell);
+            scrapeAntagningsTabell(antagningsTabell, examen, linkTillUtb);
         }
 
-        String utbNamn = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.cssSelector("div.info-container > div > div.info-left > h3")))).getText();
-        String uni = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div[1]/div/div[1]/div/span[1]/text()")))).getText();
-        //får med %
-        String studietakt = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div[1]/div/div[1]/div/span[3]/text()")))).getText();
-        String antalHP = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div[1]/div/div[1]/div/span[2]/text()")))).getText();
-        String utbTyp = utbNivaOchTypArr[0];
-        String studieform = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[1]/div[5]/span[2]")))).getText();
-        String ort = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[2]/div[1]")))).getText().replace("Ort: ", ""); 
-
-    }
-
-    public void setFilterForBetyg(){
-        WebElement filterButton = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[@id=\"256-multiselect\"]/button")));
         
+
     }
+
+    public void setFilterForBetyg(WebElement result){
+        easySleep(5000, 5000);
+
+        WebElement filterButton = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div[2]/div/div[1]/div[1]/div[2]/div[2]/div/fieldset/div/button"))));
+        filterButton.click();                    
+        
+        List<WebElement> filterAlternativ = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//*[contains(@id= 'multiselect']/div/ul/li[*]/label/span")));
+        int i = 0;
+        String B1 = "BI - Gymnasiebetyg utan komplettering";
+        String B2 = "BII - Gymnasiebetyg med komplettering";
+        String HP = "HP - Högskoleprov";
+        while(i < 3){
+            String filter = filterAlternativ.get(i).getText();
+            if(filter.equals(B1) || filter.equals(B2) || filter.equals(HP)){
+                filterAlternativ.get(i).click();
+            }
+        }
+
+        filterButton.click();
+
+        WebElement visa = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//*[containts(@id= '-anstat-collapse']/div[2]/div/div/button[1]"))));
+        visa.click();
+
+    }
+
+    public void scrapeAntagningsTabell(WebElement antagningsTabell, String examen, String linkTillUtb){
+        Utbildning utbildning = new Utbildning();
+        utbildning.setExamen(examen);
+        utbildning.setLink(linkTillUtb);
+
+
+
+    }
+        
 }
+///html/body/main/div/div/div/div/div/searchcompare/div[3]/div/div[3]/div[1]/ul/li[1]/div[2]/div/div[1]/div[1]/div[2]/div[2]/div/fieldset/div/button
+//html/body/main/div/div/div/div/div/searchcompare/div[3]/div/div[3]/div[1]/ul/li[2]/div[2]/div/div[1]/div[1]/div[2]/div[2]/div/fieldset/div/button

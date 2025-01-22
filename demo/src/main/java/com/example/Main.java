@@ -1,7 +1,6 @@
 package com.example;
 
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
+
 
 public class Main {
     public static void main(String[] args) {
@@ -9,4 +8,4 @@ public class Main {
         Scraper scraper = new Scraper();
         scraper.scrape();
     }
-}
+}//*[@id="27-multiselect"]/button/svg

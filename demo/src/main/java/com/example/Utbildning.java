@@ -9,6 +9,7 @@ public class Utbildning {
      private String platsDistans;
      private String examen;
      private String utbildningNiva;
+     private String link;
      private int studietakt;
      private int antalHP;
 
@@ -38,6 +39,9 @@ public class Utbildning {
      public void setUtbildningNiva(String utbildningNiva){
          this.utbildningNiva = utbildningNiva;
      }
+    public void setLink(String link){
+        this.link = link;
+    }
      public void setStudietakt(int studietakt){
          this.studietakt = studietakt;
      }
@@ -65,6 +69,9 @@ public class Utbildning {
      public String getUtbildningNiva(){
          return utbildningNiva;
      }
+    public String getLink(){
+        return link;
+    }
      public int getStudietakt(){
          return studietakt;
      }
