@@ -224,7 +224,7 @@ public class Scraper {
                 }
             }
         } catch(TimeoutException e){
-            System.out.println("No antagningsstatistik");
+            System.out.println("No antagningsstatistik" + e.getMessage());
         }
 
         
@@ -324,7 +324,7 @@ public class Scraper {
         //*[@id="29-anstat-collapse"]/div[3]/div/div[2]/table/tbody/tr[2]
         //*[@id="29-anstat-collapse"]/div[4]/div/div[2]/table/tbody/tr[2]
         //*[@id="29-anstat-collapse"]/div[4]/div/div[2]/table/tbody/tr[4]
-        int divNbr = nbrOfAntagningsTabeller + 2;
+        int divNbr = nbrOfAntagningsTabeller + 3;
 
         List<WebElement> TRS = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//*[contains(@id, '-anstat-collapse')]/div[" + divNbr + "]/div/div[2]/table/tbody/tr")));
         System.out.println(TRS.size() + " TRS");
