@@ -9,21 +9,20 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.Duration;
-import java.util.stream.Collectors;
+
 import org.openqa.selenium.support.ui.Wait;
 import java.util.ArrayList;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.PageLoadStrategy;
 import org.openqa.selenium.TimeoutException;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.FluentWait;
-import org.openqa.selenium.support.ui.Wait;
-import org.checkerframework.checker.units.qual.s;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
+
 import org.openqa.selenium.support.ui.ExpectedConditions;
 
 public class Scraper {
@@ -33,7 +32,11 @@ public class Scraper {
     private Wait<WebDriver> fasterWait;
     private List<Utbildning> utbildningar;
     private int NBR_OF_RESULTS_PER_PAGE = 15;
-    
+    private FileWriter writerNbrOfPages;
+    private String filePathNbrOfPages = "C:\\Users\\oxxer\\projekt\\studera\\demo\\src\\main\\resources\\nbrOfpageScraped.txt";
+    private String filePathJSON = "C:\\Users\\oxxer\\projekt\\studera\\demo\\src\\main\\resources\\jsonUtbildningar.json";
+    private int nbrOfPagesScraped;
+    private BufferedWriter JSONWriter;
 
 
     public Scraper  (){
@@ -56,6 +59,15 @@ public class Scraper {
                             
 
         this.utbildningar = new ArrayList<>();
+        
+        try{
+            this.writerNbrOfPages = new FileWriter(this.filePathNbrOfPages, false);
+            this.JSONWriter = new BufferedWriter(new FileWriter(filePathJSON, true));
+        } catch(IOException e){ 
+            System.out.println(e.getMessage());
+        }
+
+        this.nbrOfPagesScraped = getNbrOfPagesAlreadyScraped();
                                 
     }
 
@@ -81,11 +93,14 @@ public class Scraper {
         Integer nbrOfResults = getNumberOfResults(); 
         Integer nbrOfPages = (int) Math.ceil(nbrOfResults / NBR_OF_RESULTS_PER_PAGE);
 
-        for(int i = 1; i <= nbrOfPages; i++){
+        
+
+        for(int i = this.nbrOfPagesScraped; i <= nbrOfPages; i++){
             System.out.println("Page: " + i);
-            easySleep(200, 200);
-            getResults();
             driver.get("https://www.studera.nu/jamfor-utbildning/?q=&p="+ i + "&_t_dtq=true");
+            getResults();
+            writePageNbrToFile(i);
+            this.nbrOfPagesScraped = i;
             //WebElement nextPage = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("#SCPaging > ul > li:nth-child(7) > a")));
             //nextPage.click();
         }                                                                               
@@ -148,11 +163,12 @@ public class Scraper {
         easySleep(200, 300);
         
 
-        WebElement dropDownKnapp= wait.until(ExpectedConditions.visibilityOf(result.findElement(By.cssSelector("div.info-container > div > div.info-buttons > button.btn.btn-default.btn-accordion-toggle"))));
+        //WebElement dropDownKnapp= wait.until(ExpectedConditions.visibilityOf(result.findElement(By.cssSelector("div.info-container > div > div.info-buttons > button.btn.btn-default.btn-accordion-toggle"))));
+        WebElement dropDownKnapp= tryToScrapeCSS("div.info-container > div > div.info-buttons > button.btn.btn-default.btn-accordion-toggle", 7, result);
         dropDownKnapp.click();
 
-        String utbNivaOchTyp = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[1]/div[4]/span[2]")))).getText();
-        
+        //String utbNivaOchTyp = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[1]/div[4]/span[2]")))).getText();
+        String utbNivaOchTyp = tryToScrape(".//div/div[2]/div/div[1]/div[4]/span[2]", 7, result).getText();
 
         System.out.println(utbNivaOchTyp);
 
@@ -162,11 +178,13 @@ public class Scraper {
         if(!sluta){
             System.out.println("Fortsatt");
             
-            String linkTillUtb = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[1]/a")))).getDomAttribute("href");
-            String examen = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[2]/div[4]")))).getText().replace("Examen: ", "");
+            //String linkTillUtb = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[1]/a")))).getDomAttribute("href");
+            String linkTillUtb = tryToScrape(".//div/div[2]/div/div[1]/a", 7, result).getDomAttribute("href");
 
-            
-            scrapeBetyg(result, examen, linkTillUtb);
+            //String examen = wait.until(ExpectedConditions.visibilityOf(result.findElement(By.xpath(".//div/div[2]/div/div[2]/div[4]")))).getText().replace("Examen: ", "");
+            String examen = tryToScrape(".//div/div[2]/div/div[2]/div[4]", 7, result).getText().replace("Examen:", "");
+            System.out.println(examen + " examen");
+            scrapeBetyg(result, examen, linkTillUtb, utbNiva);
             dropDownKnapp.click();
         } else{
             System.out.println("Sluta");
@@ -174,37 +192,42 @@ public class Scraper {
         
     } 
 
-    public void scrapeBetyg(WebElement result, String examen, String linkTillUtb){
-        easySleep(1000, 1000);
-        WebElement antagningsStatKnapp = tryToScrape(".//*[@id=\"admission-stats-accordian\"]/div/button", 7, result);
-        antagningsStatKnapp.click();
-        easySleep(200, 300);     //*[@id="admission-stats-accordian"]/div/button
+    public void scrapeBetyg(WebElement result, String examen, String linkTillUtb, String utbNiva){
         
-        Boolean cont = false;
-        cont = setFilterForBetyg(result, cont);
-            
-            
-        List<WebElement> antagningsTabeller = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//*[contains(@id, '-anstat-collapse')]/div")));
-        System.out.println (antagningsTabeller.size()+ " antagningsTabeller");
-        
-        List<WebElement> filteredAntagningsTabeller = antagningsTabeller.stream()
-        .filter(k -> "antstat-tables".equals(k.getDomAttribute("class")))
-        .collect(Collectors.toList());
-        for(WebElement antagningsTabell : filteredAntagningsTabeller){
-            System.out.println(antagningsTabell.getDomAttribute("class") + "hej2");
-        }
-        System.out.println(filteredAntagningsTabeller.size() + " filtered antagningsTabeller");
+        try{
+            WebElement antagningsStatKnapp = tryToScrape(".//*[@id=\"admission-stats-accordian\"]/div/button", 7, result);
+            antagningsStatKnapp.click();
 
-        for(WebElement antagningsTabell : filteredAntagningsTabeller){
-            System.out.println(antagningsTabell.getDomAttribute("class") + "hej");
-            System.out.println("cont " + cont);
+            Boolean cont = false;
+            cont = setFilterForBetyg(result, cont);
+        
+            List<WebElement> antagningsTabeller = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//*[contains(@id, '-anstat-collapse')]/div")));
+            //System.out.println (antagningsTabeller.size()+ " antagningsTabeller");
+            
+            List<WebElement> filteredAntagningsTabeller = antagningsTabeller.stream()
+            .filter(k -> "antstat-tables".equals(k.getDomAttribute("class")))
+            .collect(Collectors.toList());
+            
+            //for(WebElement antagningsTabell : filteredAntagningsTabeller){
+            //    System.out.println(antagningsTabell.getDomAttribute("class") + "hej2");
+            //}
+
+            //System.out.println(filteredAntagningsTabeller.size() + " filtered antagningsTabeller");
+            int nbrOfAntagningsTabeller = 0;
             if(cont){
-                scrapeAntagningsTabell(antagningsTabell, examen, linkTillUtb);
+                for(WebElement antagningsTabell : filteredAntagningsTabeller){
+                    //System.out.println(antagningsTabell.getDomAttribute("class") + "hej");
+                    //System.out.println("cont " + cont);
+                   
+                        scrapeAntagningsTabell(antagningsTabell, examen, linkTillUtb, utbNiva, nbrOfAntagningsTabeller);
+                        nbrOfAntagningsTabeller++;
+                }
             }
+        } catch(TimeoutException e){
+            System.out.println("No antagningsstatistik");
         }
 
         
-
     }
 
     public Boolean setFilterForBetyg(WebElement result, Boolean cont){
@@ -240,25 +263,20 @@ public class Scraper {
         return cont;
     }
 
-    public void scrapeAntagningsTabell(WebElement antagningsTabell, String examen, String linkTillUtb){
+    public void scrapeAntagningsTabell(WebElement antagningsTabell, String examen, String linkTillUtb, String utbNiva, int nbrOfAntagningsTabeller){
         
         Utbildning utbildning = new Utbildning();
         utbildning.setExamen(examen);
         utbildning.setLink(linkTillUtb);
-
+        utbildning.setUtbildningNiva(utbNiva);
         
-        String namn = tryToScrape(".//div/h5", 7, antagningsTabell).getText();
+        String namn = tryToScrape(".//div/h5", 7, antagningsTabell).getText().replace("\"","'");
         System.out.println("Namn: " + namn);
     
         String uni = tryToScrape(".//div/div[1]/span[1]", 7, antagningsTabell).getText();
         System.out.println("Uni: " + uni);
     
         String antalHP = tryToScrape(".//div[1]/span[2]", 7, antagningsTabell).getText().split(" ")[0];
-        //antalHP.chars()
-        //        .filter(c -> Character.isDigit(c) || c == ',')
-        //        .mapToObj(c -> String.valueOf((char) c))
-        //        .collect(Collectors.joining());
-
         antalHP = antalHP.replace("Omfattning", "").replace(",", ".");
         System.out.println("Antal HP: " + antalHP);
 
@@ -289,8 +307,9 @@ public class Scraper {
         utbildning.setUtbildningstyp(utbTyp);
         utbildning.setPlatsDistans(utbDistansEllerInte);
         utbildning.setOrt(plats);
+        utbildning.setSida(String.valueOf(this.nbrOfPagesScraped));
 
-        scrapeBetygData(antagningsTabell, utbildning);
+        scrapeBetygData(antagningsTabell, utbildning, nbrOfAntagningsTabeller);
 
     }
 
@@ -300,13 +319,14 @@ public class Scraper {
 //*[@id="51-anstat-collapse"]/div[5]/div/h5
 //*[@id="51-anstat-collapse"]/div[4]/div/h5
 
-    public void scrapeBetygData(WebElement antagningtabell, Utbildning utbildning){
+    public void scrapeBetygData(WebElement antagningtabell, Utbildning utbildning, int nbrOfAntagningsTabeller){
         //*[@id="29-anstat-collapse"]/div[3]/div/div[2]/table/tbody/tr[2]
         //*[@id="29-anstat-collapse"]/div[3]/div/div[2]/table/tbody/tr[2]
         //*[@id="29-anstat-collapse"]/div[4]/div/div[2]/table/tbody/tr[2]
         //*[@id="29-anstat-collapse"]/div[4]/div/div[2]/table/tbody/tr[4]
+        int divNbr = nbrOfAntagningsTabeller + 2;
 
-        List<WebElement> TRS = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//table/tbody/tr")));
+        List<WebElement> TRS = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//*[contains(@id, '-anstat-collapse')]/div[" + divNbr + "]/div/div[2]/table/tbody/tr")));
         System.out.println(TRS.size() + " TRS");
         TRS.stream()
                 .map(k -> k.findElement(By.xpath("./*")))
@@ -315,10 +335,25 @@ public class Scraper {
 
         System.out.println(TRS.size() + " TRS");
 
+//*[@id="41-anstat-collapse"]/div[4]/div/div[2]/table/tbody/tr[1]
+
+
+        Betyg betyg = new Betyg();
+        
+
         for(WebElement TR : TRS){
-            System.out.println(TR.getDomAttribute("aria-label") + " TR");
-            System.out.println(TR.getText());
+            betyg.addToStringList(TR.getText());
+            betyg.filterList();
         }
+
+        utbildning.setBetyg(betyg);
+        try{
+            this.JSONWriter.write(utbildning.toString());
+        } catch(IOException e){
+            System.out.println(e.getMessage());
+        }
+        
+
     }
     
 
@@ -333,6 +368,46 @@ public class Scraper {
             easySleep(100, 100);
             return tryToScrape(path, seconds - 0.1, fromElement);
         }
+    }
+
+    public WebElement tryToScrapeCSS(String path, double seconds, WebElement fromElement){
+        try{
+            if(seconds <= 0){
+                throw new TimeoutException();
+            }
+            WebElement element = wait.until(ExpectedConditions.visibilityOf(fromElement.findElement(By.cssSelector(path))));
+            return element;
+        } catch(NoSuchElementException e){
+            easySleep(100, 100);
+            return tryToScrape(path, seconds - 0.1, fromElement);
+        }
+    }
+
+    public void writePageNbrToFile(int pageNbr){
+        try{
+            System.out.println("Writing to file");
+            this.writerNbrOfPages.write(String.valueOf(pageNbr));
+            this.writerNbrOfPages.write(System.lineSeparator());
+        } catch(IOException e){
+            System.out.println(e.getMessage());
+        }
+        
+    }
+
+    public int getNbrOfPagesAlreadyScraped(){
+        
+        int pageNbr = 0;
+        try (BufferedReader reader = new BufferedReader(new FileReader(this.filePathNbrOfPages))) {
+            String line = reader.readLine();
+            if (line != null) {
+                pageNbr = Integer.parseInt(line.trim());
+            }
+        } catch (IOException | NumberFormatException e) {
+            System.out.println(e.getMessage());
+        }
+    
+        return pageNbr;
+
     }
 
         

@@ -1,5 +1,7 @@
 package com.example;
 
+import org.checkerframework.checker.units.qual.s;
+
 public class Utbildning {
     
      private String namn;
@@ -10,8 +12,10 @@ public class Utbildning {
      private String examen;
      private String utbildningNiva;
      private String link;
+     private String sida;
      private int studietakt;
      private double antalHP;
+     private Betyg betyg;
 
      public Utbildning  (){
 
@@ -79,6 +83,33 @@ public class Utbildning {
          return antalHP;
      }
 
+    public void setBetyg(Betyg betyg){
+        this.betyg = betyg;
+    }
 
+    public void setSida(String sida){
+        this.sida = sida;
+    }   
+
+    @Override
+    public String toString(){
+        StringBuilder sb = new StringBuilder();
+        //sb.append("\"Utbildning\": \n");
+        sb.append("{\n");
+        sb.append("\t" + "\"Namn\": \"" + namn + "\",\n");
+        sb.append("\t" + "\"Universitet\": \"" + uni + "\",\n");
+        sb.append("\t" + "\"Ort\": \"" + ort + "\",\n");
+        sb.append("\t" + "\"Utbildningstyp\": \"" + utbildningstyp + "\",\n");
+        sb.append("\t" + "\"PlatsDistans\": \"" + platsDistans + "\",\n");
+        sb.append("\t" + "\"Examen\": \"" + examen + "\",\n");
+        sb.append("\t" + "\"Utbildningsniva\": \"" + utbildningNiva + "\",\n");
+        sb.append("\t" + "\"Link\": \"" + link + "\",\n");
+        sb.append("\t" + "\"Studietakt\": \"" + studietakt + "\",\n");
+        sb.append("\t" + "\"AntalHP\": \"" + antalHP + "\",\n");
+        sb.append("\t" + "\"Sida\": \"" + sida + "\",\n");
+        sb.append("\t" + betyg.toString());
+        sb.append("},\n");
+        return sb.toString();
+    }
 
 }
