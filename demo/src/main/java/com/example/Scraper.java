@@ -95,7 +95,7 @@ public class Scraper {
 
         
 
-        for(int i = this.nbrOfPagesScraped; i <= nbrOfPages; i++){
+        for(int i = 85; i <= nbrOfPages; i++){
             System.out.println("Page: " + i);
             driver.get("https://www.studera.nu/jamfor-utbildning/?q=&p="+ i + "&_t_dtq=true");
             getResults();
@@ -222,6 +222,8 @@ public class Scraper {
                         scrapeAntagningsTabell(antagningsTabell, examen, linkTillUtb, utbNiva, nbrOfAntagningsTabeller);
                         nbrOfAntagningsTabeller++;
                 }
+            } else{
+                System.out.println("no cont");
             }
         } catch(TimeoutException e){
             System.out.println("No antagningsstatistik" + e.getMessage());
@@ -342,9 +344,11 @@ public class Scraper {
         
 
         for(WebElement TR : TRS){
+            System.out.println("TRS TEXT: " + TR.getText());
             betyg.addToStringList(TR.getText());
-            betyg.filterList();
+            
         }
+        betyg.filterList();
 
         utbildning.setBetyg(betyg);
         try{
