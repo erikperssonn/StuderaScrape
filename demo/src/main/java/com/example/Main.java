@@ -5,10 +5,14 @@ package com.example;
 public class Main {
     public static void main(String[] args) {
 
-        Scraper scraper = new Scraper();
-        scraper.scrape();
+        //Scraper scraper = new Scraper();
+        //scraper.scrape();
+
+        Stats stats = new Stats();
+        stats.doStats();
     }
-}//*[@id="27-multiselect"]/button/svg
+}
+//*[@id="27-multiselect"]/button/svg
 
 //*[@id="29-anstat-collapse"]/div[3]/div
 

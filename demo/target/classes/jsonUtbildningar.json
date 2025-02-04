@@ -1,3 +1,4 @@
+[
 {
 	"Namn": ".NET-programmering",
 	"Universitet": "Uppsala universitet",
@@ -43221,22 +43222,5 @@
 		"VT2023": {"B1": "X", "B2": "X", "HP": "X", "B1Value": "0.0", "B2Value": "0.0", "HPValue": "0.0"},
 		"VT2021": {"B1": "X", "B2": "X", "HP": "X", "B1Value": "0.0", "B2Value": "0.0", "HPValue": "0.0"}
 	}
-},
-{
-	"Namn": "Framtid och scenariodesign",
-	"Universitet": "Mälardalens universitet",
-	"Ort": "Ortsoberoende",
-	"Utbildningstyp": "Kurs",
-	"PlatsDistans": "Distans",
-	"Examen": "-",
-	"Utbildningsniva": "Grund",
-	"Link": "https://www.mdu.se/utbildning/kurser?kod=INO109&l=sv",
-	"Studietakt": "25",
-	"AntalHP": "7.5",
-	"Sida": "340",
-	"Betyg": {
-		"VT2025": {"B1": "*", "B2": "*", "HP": "*", "B1Value": "0.0", "B2Value": "0.0", "HPValue": "0.0"},
-		"VT2024": {"B1": "*", "B2": "*", "HP": "*", "B1Value": "0.0", "B2Value": "0.0", "HPValue": "0.0"},
-		"VT2023": {"B1": "*", "B2": "*", "HP": "*", "B1Value": "0.0", "B2Value": "0.0", "HPValue": "0.0"},
-		"VT2022": {"B1": "*", "B2": "*", "HP": "*", "B1Value": "0.0", "B2Value": "0.0", "HPValue": "0.0"},
-		"HT2021": {"B1": "*", "B2"
+}
+]
